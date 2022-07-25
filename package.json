@@ -1,0 +1,18 @@
+{
+  "name": "js-client",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "@iroha2/client": "^1.4.0",
+    "@iroha2/crypto-core": "^0.1.1",
+    "@iroha2/crypto-target-node": "^0.2.0",
+    "@iroha2/data-model": "^1.4.0",
+    "hada": "^0.0.8",
+    "typescript": "^4.7.4"
+  }
+}
