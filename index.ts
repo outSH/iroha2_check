@@ -277,14 +277,16 @@ async function mintAsset(
     }),
     destination_id: EvaluatesToIdBox({
       expression: Expression(
-        'Raw',
+        "Raw",
         Value(
-          'Id',
-          IdBox( // idBox instead of AssetDefinitionId as described in the tutorial
-            'AssetId', assetId
-          ),
-        ),
-      )
+          "Id",
+          IdBox(
+            // idBox instead of AssetDefinitionId as described in the tutorial
+            "AssetId",
+            assetId
+          )
+        )
+      ),
     }),
   });
 
@@ -295,6 +297,10 @@ async function mintAsset(
 
 async function main() {
   const domainName = "my_test_domain";
+
+  // Get status
+  console.log(JSON.stringify(await client.getStatus()));
+
   // Register Domain
   //await registerDomain(domainName);
 
