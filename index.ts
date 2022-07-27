@@ -1,5 +1,3 @@
-// doesn't expose any convenience features like a TransactionBuilder or a ConfigBuilder.
-
 import fs from "fs";
 import { hexToBytes } from "hada";
 
@@ -25,15 +23,14 @@ import {
   VecInstruction,
   VecPublicKey,
   PublicKey,
-  AssetDefinition,
   AssetValueType,
   Mintable,
   AssetDefinitionId,
   EvaluatesToValue,
   IdBox,
   MintBox,
-  EvaluatesToIdBox,
   AssetId,
+  NewAssetDefinition,
 } from "@iroha2/data-model";
 
 setCrypto(crypto);
@@ -45,6 +42,7 @@ function generateKeyPair(params: {
     payload: string;
   };
 }): KeyPair {
+  // @todo: exception safety
   const multihashBytes = Uint8Array.from(hexToBytes(params.publicKeyMultihash));
   const multihash = crypto.createMultihashFromBytes(multihashBytes);
   const publicKey = crypto.createPublicKeyFromMultihash(multihash);
@@ -52,41 +50,38 @@ function generateKeyPair(params: {
 
   const keyPair = crypto.createKeyPairFromKeys(publicKey, privateKey);
 
-  // don't forget to "free" created structures
-  for (const x of [publicKey, privateKey, multihash]) {
-    x.free();
-  }
+  // always free created structures
+  [publicKey, privateKey, multihash].forEach((x) => x.free());
 
   return keyPair;
 }
 
+// Read Config
+const configPath = "./config.json";
+const configJson = fs.readFileSync(configPath, "ascii");
+const config = JSON.parse(configJson);
+
+// Create client
 const kp = generateKeyPair({
-  publicKeyMultihash:
-    "ed01207233bfc89dcbd68c19fde6ce6158225298ec1131b6a130d1aeb454c1ab5183c0",
+  publicKeyMultihash: config.PUBLIC_KEY,
   privateKey: {
-    digestFunction: "ed25519",
-    payload:
-      "9ac47abf59b356e0bd7dcbbbb4dec080e302156a48ca907e47cb6aea1d32719e7233bfc89dcbd68c19fde6ce6158225298ec1131b6a130d1aeb454c1ab5183c0",
+    digestFunction: config.PRIVATE_KEY.digest_function,
+    payload: config.PRIVATE_KEY.payload,
   },
 });
 
-const accountId = AccountId({
-  name: "alice",
-  domain_id: DomainId({
-    name: "wonderland",
-  }),
-});
-
+// More options available - https://github.com/hyperledger/iroha/issues/2118 and UserConfig
 const client = new Client({
   torii: {
-    // Both URLs are optional - in case you need only a part of endpoints,
-    // e.g. only Telemetry ones
-    apiURL: "http://127.0.0.1:8080",
-    telemetryURL: "http://127.0.0.1:8081",
+    apiURL: config.TORII_API_URL,
+    telemetryURL: config.TORII_TELEMETRY_URL,
   },
-  accountId: accountId,
+  accountId: config.ACCOUNT_ID,
   keyPair: kp,
 });
+
+// verbose log in docker compose
+client.setPeerConfig({ LogLevel: "TRACE" });
 
 ////////// Register domain
 async function registerDomain(domainName: string) {
@@ -141,19 +136,28 @@ async function createAccount(accountName: string, domainName: string) {
     }),
   });
 
-  // Generation doesn't work
-  // TODO - fix. Might be needed for test
-  // const SEED_BYTES = [49, 50, 51, 52]; // todo - random
+  // ERROR
+  // Error: null pointer passed to rust
+  // at module.exports.__wbindgen_throw (/home/vagrant/iroha2/js-client/node_modules/@iroha2/crypto-target-node/dist/wasm/crypto.js:873:11)
+  // at wasm://wasm/0076bb3a:wasm-function[607]:0xb52ad
+  // at wasm://wasm/0076bb3a:wasm-function[605]:0xb5293
+  // at wasm://wasm/0076bb3a:wasm-function[229]:0xa4b97
+  // at KeyGenConfiguration.useSeed (/home/vagrant/iroha2/js-client/node_modules/@iroha2/crypto-target-node/dist/wasm/crypto.js:418:24)
+  // at createAccount (/home/vagrant/iroha2/js-client/dist/index.js:84:74)
+  // at main (/home/vagrant/iroha2/js-client/dist/index.js:170:11)
+  // at processTicksAndRejections (node:internal/process/task_queues:96:5)
+  ///////////////
+  // const SEED_BYTES = [11, 22, 33, 44, 55, 66, 77, 88];
   // const keyAlgo = crypto.AlgorithmEd25519();
-  // const config = new KeyGenConfiguration().useSeed(Uint8Array.from(SEED_BYTES)).withAlgorithm(keyAlgo);
+  // const config = new (crypto as any).KeyGenConfiguration().useSeed(Uint8Array.from(SEED_BYTES)).withAlgorithm(keyAlgo);
   // const keyPair = crypto.generateKeyPairWithConfiguration(config);
   // console.log("KEY PAIR:", keyPair);
-
-  // const publicKey = PublicKey({
+  // const publicKey2 = PublicKey({
   //   payload: keyPair.publicKey().payload(),
   //   digest_function: keyPair.publicKey().digestFunction(),
   // })
-  // console.log("publicKey:", publicKey);
+  // console.log("publicKey2:", publicKey2);
+  ////////////////
 
   // Load key from fs. First run manually:
   // openssl genpkey -algorithm ed25519 -outform PEM -out ./dist/private.pem
@@ -173,6 +177,7 @@ async function createAccount(accountName: string, domainName: string) {
           IdentifiableBox(
             "NewAccount",
             NewAccount({
+              // another opt: Account, more details
               id: accountId,
               signatories: VecPublicKey([publicKey]),
               metadata: Metadata({ map: MapNameValue(new Map()) }),
@@ -191,41 +196,18 @@ async function createAccount(accountName: string, domainName: string) {
   );
 }
 
-/**
- * FAILS
- * NotPermittedFail {
- * reason: "Validator CheckNested {
- *  validator: Or {
- *    first: OnlyAssetsCreatedByThisAccount, second: HasTokenAsValidator {
- *      has_token: GrantedByAssetCreator
- *    },
- *    _phantom_operation: PhantomData }
- *   } denied operation
- *   Register(
- *     RegisterBox {
- *      object: EvaluatesTo {
- *        expression: Raw(Identifiable(AssetDefinition(AssetDefinition {
- *          id: DefinitionId {
- *            name: \"gold\",
- *            domain_id: Id { name: \"my_test_domain\" } },
- *            value_type: Quantity,
- *            mintable: Infinitely,
- *      metadata: Metadata { map: {} }
- *  }))), _value_type: PhantomData } }):
- * Nor first validator OnlyAssetsCreatedByThisAccount succeed:
- *  Conversion Error: Failed converting from iroha_data_model::RegistrableBox to iroha_data_model::Value,
- * nor second validator HasTokenAsValidator { has_token: GrantedByAssetCreator } succeed:
- *  Unable to identify corresponding permission token: Conversion Error: Failed converting from iroha_data_model::RegistrableBox to iroha_data_model::Value",
- */
+// Add Asset
 async function createAsset(assetName: string, domainName: string) {
-  const assetDefinition = AssetDefinition({
+  const assetDefinitionId = AssetDefinitionId({
+    name: assetName,
+    domain_id: DomainId({ name: domainName }),
+  });
+
+  const newAssetDef = NewAssetDefinition({
+    id: assetDefinitionId,
     value_type: AssetValueType("Quantity"),
-    id: AssetDefinitionId({
-      name: assetName,
-      domain_id: DomainId({ name: domainName }),
-    }),
-    metadata: Metadata({ map: MapNameValue(new Map()) }),
-    mintable: Mintable("Infinitely"), // mintable
+    metadata: Metadata({ map: MapNameValue(new Map([["myTag", Value("String", "testMeta")]])) }),
+    mintable: Mintable("Infinitely"),
   });
 
   const registerBox = RegisterBox({
@@ -234,7 +216,7 @@ async function createAsset(assetName: string, domainName: string) {
         "Raw",
         Value(
           "Identifiable",
-          IdentifiableBox("AssetDefinition", assetDefinition)
+          IdentifiableBox("NewAssetDefinition", newAssetDef)
         )
       ),
     }),
@@ -248,26 +230,23 @@ async function createAsset(assetName: string, domainName: string) {
   );
 }
 
-// "Unsupported Mint instruction" ?? - FIXED
-// Now: NotPermittedFail - neither of following succeeded:
-//  - Can't mint assets with definitions registered by other accounts. (?)
-//  - Account does not have the needed permission token: PermissionToken { name: \"can_mint_user_asset_definitions\", params: {\"asset_definition_id\": Id(AssetDefinitionId(DefinitionId { name: \"roses\", domain_id: Id { name: \"wonderland\" } }))} }."
 async function mintAsset(
   accountName: string,
-  domainName: string,
+  accountDomainName: string,
   assetName: string,
+  assetDomainName: string,
   amount: number
 ) {
   const assetId = AssetId({
-    definition_id: AssetDefinitionId({
-      name: assetName,
-      domain_id: DomainId({ name: domainName }),
-    }),
     account_id: AccountId({
       name: accountName,
       domain_id: DomainId({
-        name: domainName,
+        name: accountDomainName,
       }),
+    }),
+    definition_id: AssetDefinitionId({
+      name: assetName,
+      domain_id: DomainId({ name: assetDomainName }),
     }),
   });
 
@@ -275,7 +254,9 @@ async function mintAsset(
     object: EvaluatesToValue({
       expression: Expression("Raw", Value("U32", amount)),
     }),
-    destination_id: EvaluatesToIdBox({
+    // destination_id: EvaluatesToRegistrableBox({
+    destination_id: EvaluatesToRegistrableBox({
+      // EvaluatesToIdBox
       expression: Expression(
         "Raw",
         Value(
@@ -296,27 +277,33 @@ async function mintAsset(
 }
 
 async function main() {
-  const domainName = "my_test_domain";
+  const status = await client.getStatus();
+  console.log("status:", JSON.stringify(status));
+  const health = await client.getHealth();
+  console.log("health:", JSON.stringify(health));
 
-  // Get status
-  console.log(JSON.stringify(await client.getStatus()));
+  const domainName = "my_test_domain";
+  const assetName = "gold";
 
   // Register Domain
-  //await registerDomain(domainName);
-
-  // Register domain
-  //await ensureDomainExistence(domainName);
+  await registerDomain(domainName);
+  await ensureDomainExistence(domainName);
 
   // Create Account
-  // const newAccountName = "SomeNewAccount";
-  // await createAccount(newAccountName, domainName);
+  const newAccountName = "SomeNewAccount";
+  await createAccount(newAccountName, domainName);
 
-  const assetName = "gold";
   // Create asset
-  //await createAsset(assetName, domainName);
+  await createAsset(assetName, domainName);
 
   // Mint asset
-  await mintAsset("alice", "wonderland", "roses", 55);
+  await mintAsset(
+    config.ACCOUNT_ID.name,
+    config.ACCOUNT_ID.domain_id.name,
+    assetName,
+    domainName,
+    55
+  );
 }
 
 main();
