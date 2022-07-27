@@ -1,37 +1,10 @@
-// doesn't expose any convenience features like a TransactionBuilder or a ConfigBuilder.
-
-import fs from "fs";
 import { hexToBytes, bytesToHex } from "hada";
 import { crypto } from "@iroha2/crypto-target-node";
 import { KeyPair } from "@iroha2/crypto-core";
-import { setCrypto, Client, SetupEventsReturn } from "@iroha2/client";
+import { setCrypto, Client, SetupEventsReturn, SetupBlocksStreamReturn } from "@iroha2/client";
 import {
   AccountId,
-  NewAccount,
   DomainId,
-  EvaluatesToRegistrableBox,
-  Executable,
-  Expression,
-  IdentifiableBox,
-  Instruction,
-  MapNameValue,
-  Metadata,
-  NewDomain,
-  OptionIpfsPath,
-  QueryBox,
-  RegisterBox,
-  Value,
-  VecInstruction,
-  VecPublicKey,
-  PublicKey,
-  AssetDefinition,
-  AssetValueType,
-  Mintable,
-  AssetDefinitionId,
-  EvaluatesToValue,
-  IdBox,
-  MintBox,
-  EvaluatesToIdBox,
   AssetId,
   FilterBox,
   OptionHash,
@@ -42,8 +15,6 @@ import {
   PipelineStatusKind,
   PipelineEvent,
   FilterOptEntityFilter,
-  FilterOptIdFilterAssetId,
-  FilterOptAssetFilter,
   EntityFilter,
   FilterOptDomainFilter,
   DomainFilter,
@@ -101,7 +72,7 @@ const client = new Client({
     // Both URLs are optional - in case you need only a part of endpoints,
     // e.g. only Telemetry ones
     apiURL: "http://127.0.0.1:8080",
-    telemetryURL: "http://127.0.0.1:8081",
+    telemetryURL: "http://127.0.0.1:8180",
   },
   accountId: accountId,
   keyPair: kp,
@@ -207,11 +178,27 @@ async function startMonitoringByDomain(domainName: string) {
   });
 }
 
+// Doesn't work :/
+let blockMonitor: SetupBlocksStreamReturn | undefined;
+async function monitorBlocks() {
+  blockMonitor = await client.listenForBlocksStream({ height: BigInt(0) }); // height?
+
+  blockMonitor.ee.on("block", (block) => {
+    console.log("block:", JSON.stringify(block));
+  });
+}
+
 async function stopMonitoring() {
   if (monitor) {
     console.log("\nStop monitoring...");
     await monitor.stop();
     monitor = undefined;
+  }
+
+  if (blockMonitor) {
+    console.log("\nStop block monitoring...");
+    await blockMonitor.stop();
+    blockMonitor = undefined;
   }
 }
 
@@ -219,5 +206,5 @@ process.on('uncaughtException', stopMonitoring);
 process.on('SIGINT', stopMonitoring);
 process.on('exit', stopMonitoring);
 
-// asset mint --account="mad_hatter@looking_glass" --asset="tea#looking_glass" --quantity="100"
+// ./iroha_client_cli asset mint --account="mad_hatter@looking_glass" --asset="tea#looking_glass" --quantity="100"
 startMonitoringByDomain("looking_glass");
