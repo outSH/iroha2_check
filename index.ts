@@ -6,6 +6,7 @@ import { setCrypto, Client } from '@iroha2/client'
 import { hexToBytes } from 'hada'
 import {
   DomainId,
+  AccountId,
   EvaluatesToRegistrableBox,
   Executable,
   Expression,
@@ -64,6 +65,11 @@ const client = new Client({
     apiURL: 'http://127.0.0.1:8080',
     telemetryURL: 'http://127.0.0.1:8081',
   },
+  accountId: AccountId({
+    name: 'alice',
+    domain_id: DomainId({'name': 'wonderland'})
+  }),
+  keyPair: kp
 })
 
 ////////// Register domain
@@ -99,15 +105,18 @@ async function registerDomain(domainName: string) {
 
 ////// Query Domain
 async function ensureDomainExistence(domainName: string) {
-  const result = await client.request(QueryBox('FindAllDomains', null))
-
-  const domain = result
-    .as('Ok')
-    .result.as('Vec')
-    .map((x) => x.as('Identifiable').as('Domain'))
-    .find((x) => x.id.name === domainName)
-
-  if (!domain) throw new Error('Not found')
+      const result = await client.request(QueryBox('FindAllDomains', null))
+    
+      // new:
+      console.log('%o', result)
+    
+      const domain = result
+        .as('Ok')
+        .result.as('Vec')
+        .map((x) => x.as('Identifiable').as('Domain'))
+        .find((x) => x.id.name === domainName)
+    
+      if (!domain) throw new Error('Not found')
 }
 
 async function main() {
