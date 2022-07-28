@@ -1,7 +1,11 @@
 import { hexToBytes, bytesToHex } from "hada";
 import { crypto } from "@iroha2/crypto-target-node";
 import { KeyPair } from "@iroha2/crypto-core";
-import { setCrypto, Client, SetupEventsReturn, SetupBlocksStreamReturn } from "@iroha2/client";
+import {
+  setCrypto,
+  Client,
+  SetupEventsReturn,
+} from "@iroha2/client";
 import {
   AccountId,
   DomainId,
@@ -85,32 +89,32 @@ async function startMonitoringCommitedTx() {
 
   monitor = await client.listenForEvents({
     filter: FilterBox(
-      'Pipeline',
+      "Pipeline",
       PipelineEventFilter({
         entity_kind: OptionPipelineEntityKind(
-          'Some',
-          PipelineEntityKind('Transaction'),
+          "Some",
+          PipelineEntityKind("Transaction")
         ),
         status_kind: OptionPipelineStatusKind(
-          'Some',
-          PipelineStatusKind('Committed'),
+          "Some",
+          PipelineStatusKind("Committed")
         ),
-        hash: OptionHash('None'),
-      }),
+        hash: OptionHash("None"),
+      })
     ),
   });
   console.log("monitor started...");
 
-  monitor.ee.on('event', (event) => {
-    const { hash, status } = event.as('Pipeline')
+  monitor.ee.on("event", (event) => {
+    const { hash, status } = event.as("Pipeline");
     const hexHash = bytesToHex([...hash]);
     const statusText = status.match({
-      Validating: () => 'validating',
-      Committed: () => 'committed',
-      Rejected: (_reason) => 'rejected',
+      Validating: () => "validating",
+      Committed: () => "committed",
+      Rejected: (_reason) => "rejected",
     });
     console.log(`\nTransaction [${statusText}] - ${hexHash}`);
-  })
+  });
 }
 
 async function startMonitoringAnyPipeline() {
@@ -118,32 +122,32 @@ async function startMonitoringAnyPipeline() {
 
   monitor = await client.listenForEvents({
     filter: FilterBox(
-      'Pipeline',
+      "Pipeline",
       PipelineEventFilter({
-        entity_kind: OptionPipelineEntityKind('None'),
-        status_kind: OptionPipelineStatusKind('None'),
-        hash: OptionHash('None'), // Q: What is this? Watch for block/tx with given hash?
-      }),
+        entity_kind: OptionPipelineEntityKind("None"),
+        status_kind: OptionPipelineStatusKind("None"),
+        hash: OptionHash("None"),
+      })
     ),
   });
   console.log("monitor started...");
 
-  monitor.ee.on('event', (event) => {
+  monitor.ee.on("event", (event) => {
     //console.log("INCOMING EVENT:", JSON.stringify(event));
-    const pipelineEvent: PipelineEvent = event.as('Pipeline');
+    const pipelineEvent: PipelineEvent = event.as("Pipeline");
     const { entity_kind, hash, status } = pipelineEvent;
     const hexHash = bytesToHex([...hash]);
     const statusText = status.match({
-      Validating: () => 'validating',
-      Committed: () => 'committed',
-      Rejected: (_reason) => 'rejected',
+      Validating: () => "validating",
+      Committed: () => "committed",
+      Rejected: (_reason) => "rejected",
     });
     const kindText = entity_kind.match({
-      Block: () => 'Block',
-      Transaction: () => 'Transaction',
+      Block: () => "Block",
+      Transaction: () => "Transaction",
     });
     console.log(`\n${kindText} [${statusText}] - ${hexHash}`);
-  })
+  });
 }
 
 async function startMonitoringByDomain(domainName: string) {
@@ -151,40 +155,40 @@ async function startMonitoringByDomain(domainName: string) {
 
   monitor = await client.listenForEvents({
     filter: FilterBox(
-      'Data',
-      FilterOptEntityFilter("BySome", EntityFilter(
-        'ByDomain',
-        FilterOptDomainFilter('BySome', DomainFilter({
-          id_filter: FilterOptIdFilterDomainId("BySome", DomainId({
-            name: domainName,
-          })),
-          event_filter: FilterOptDomainEventFilter('AcceptAll'),
-        }
-        ))
-      )),
+      "Data",
+      FilterOptEntityFilter(
+        "BySome",
+        EntityFilter(
+          "ByDomain",
+          FilterOptDomainFilter(
+            "BySome",
+            DomainFilter({
+              id_filter: FilterOptIdFilterDomainId(
+                "BySome",
+                DomainId({
+                  name: domainName,
+                })
+              ),
+              event_filter: FilterOptDomainEventFilter("AcceptAll"),
+            })
+          )
+        )
+      )
     ),
   });
   console.log("monitor started...");
 
-  monitor.ee.on('event', (event) => {
+  monitor.ee.on("event", (event) => {
     //console.log("INCOMING EVENT:", JSON.stringify(event));
-    const dataEvent: DataEvent = event.as('Data');
-    const domainEvent: DomainEvent = dataEvent.as('Domain');
-    const accountEvent: AccountEvent = domainEvent.as('Account');
-    const assetEvent: AssetEvent = accountEvent.as('Asset');
-    const addedAssetId: AssetId = assetEvent.as('Added');
-    const { definition_id, account_id} = addedAssetId;
-    console.log(`\nAsset inc ${definition_id.name}#${definition_id.domain_id.name} by account ${account_id.name}@${account_id.domain_id.name}`);
-  });
-}
-
-// Doesn't work :/
-let blockMonitor: SetupBlocksStreamReturn | undefined;
-async function monitorBlocks() {
-  blockMonitor = await client.listenForBlocksStream({ height: BigInt(0) }); // height?
-
-  blockMonitor.ee.on("block", (block) => {
-    console.log("block:", JSON.stringify(block));
+    const dataEvent: DataEvent = event.as("Data");
+    const domainEvent: DomainEvent = dataEvent.as("Domain");
+    const accountEvent: AccountEvent = domainEvent.as("Account");
+    const assetEvent: AssetEvent = accountEvent.as("Asset");
+    const addedAssetId: AssetId = assetEvent.as("Added");
+    const { definition_id, account_id } = addedAssetId;
+    console.log(
+      `\nAsset inc ${definition_id.name}#${definition_id.domain_id.name} by account ${account_id.name}@${account_id.domain_id.name}`
+    );
   });
 }
 
@@ -194,17 +198,11 @@ async function stopMonitoring() {
     await monitor.stop();
     monitor = undefined;
   }
-
-  if (blockMonitor) {
-    console.log("\nStop block monitoring...");
-    await blockMonitor.stop();
-    blockMonitor = undefined;
-  }
 }
 
-process.on('uncaughtException', stopMonitoring);
-process.on('SIGINT', stopMonitoring);
-process.on('exit', stopMonitoring);
+process.on("uncaughtException", stopMonitoring);
+process.on("SIGINT", stopMonitoring);
+process.on("exit", stopMonitoring);
 
 // ./iroha_client_cli asset mint --account="mad_hatter@looking_glass" --asset="tea#looking_glass" --quantity="100"
-startMonitoringByDomain("looking_glass");
+startMonitoringAnyPipeline();

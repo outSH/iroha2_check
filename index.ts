@@ -31,7 +31,14 @@ import {
   MintBox,
   AssetId,
   NewAssetDefinition,
+  FindDomainById,
+  EvaluatesToDomainId,
+  FindAccountById,
+  EvaluatesToAccountId,
+  FindAssetById,
+  EvaluatesToAssetId,
 } from "@iroha2/data-model";
+import { exit } from "process";
 
 setCrypto(crypto);
 
@@ -128,6 +135,40 @@ async function ensureDomainExistence(domainName: string) {
   if (!domain) throw new Error("Not found");
 }
 
+async function getDomain(domainName: string) {
+  const result = await client.request(
+    QueryBox(
+      "FindDomainById",
+      FindDomainById({
+        id: EvaluatesToDomainId({
+          expression: Expression(
+            "Raw",
+            Value(
+              "Id",
+              IdBox(
+                "DomainId",
+                DomainId({
+                  name: domainName,
+                })
+              )
+            )
+          ),
+        }),
+      })
+    )
+  );
+
+  console.log("getDomain() result:", result);
+  const domain = result.as("Ok").result.as("Identifiable").as("Domain");
+
+  console.log("getDomain() domain:", domain);
+  if (!domain || domain.id.name != domainName) {
+    throw new Error(`Could not find domain ${domainName}`);
+  }
+
+  return domain;
+}
+
 async function createAccount(accountName: string, domainName: string) {
   const accountId = AccountId({
     name: accountName,
@@ -196,6 +237,39 @@ async function createAccount(accountName: string, domainName: string) {
   );
 }
 
+async function getAccount(name: string, domainName: string) {
+  const accountId = AccountId({
+    name: name,
+    domain_id: DomainId({
+      name: domainName,
+    }),
+  });
+
+  const result = await client.request(
+    QueryBox(
+      "FindAccountById",
+      FindAccountById({
+        id: EvaluatesToAccountId({
+          expression: Expression(
+            "Raw",
+            Value("Id", IdBox("AccountId", accountId))
+          ),
+        }),
+      })
+    )
+  );
+
+  console.log("getAccount() result:", result);
+  const account = result.as("Ok").result.as("Identifiable").as("Account");
+
+  console.log("getAccount() account:", account);
+  if (!account || account.id.name != name) {
+    throw new Error(`Could not find account ${name}:${domainName}`);
+  }
+
+  return account;
+}
+
 // Add Asset
 async function createAsset(assetName: string, domainName: string) {
   const assetDefinitionId = AssetDefinitionId({
@@ -206,7 +280,9 @@ async function createAsset(assetName: string, domainName: string) {
   const newAssetDef = NewAssetDefinition({
     id: assetDefinitionId,
     value_type: AssetValueType("Quantity"),
-    metadata: Metadata({ map: MapNameValue(new Map([["myTag", Value("String", "testMeta")]])) }),
+    metadata: Metadata({
+      map: MapNameValue(new Map([["myTag", Value("String", "testMeta")]])),
+    }),
     mintable: Mintable("Infinitely"),
   });
 
@@ -228,6 +304,66 @@ async function createAsset(assetName: string, domainName: string) {
       VecInstruction([Instruction("Register", registerBox)])
     )
   );
+}
+
+async function getAsset(
+  assetName: string,
+  assetDomainName: string,
+  accountName: string,
+  accountDomainName: string
+) {
+  const assetId = AssetId({
+    account_id: AccountId({
+      name: accountName,
+      domain_id: DomainId({
+        name: accountDomainName,
+      }),
+    }),
+    definition_id: AssetDefinitionId({
+      name: assetName,
+      domain_id: DomainId({ name: assetDomainName }),
+    }),
+  });
+
+  const result = await client.request(
+    QueryBox(
+      "FindAssetById",
+      FindAssetById({
+        id: EvaluatesToAssetId({
+          expression: Expression("Raw", Value("Id", IdBox("AssetId", assetId))),
+        }),
+      })
+    )
+  );
+
+  console.log("getAsset() result:", result);
+  const asset = result.as("Ok").result.as("Identifiable").as("Asset");
+
+  console.log("getAsset() asset:", asset);
+  if (!asset || asset.id.definition_id.name != assetName) {
+    throw new Error(`Could not find asset ${assetName}`);
+  }
+
+  return asset;
+}
+
+async function getAssetQuantity(
+  assetName: string,
+  assetDomainName: string,
+  accountName: string,
+  accountDomainName: string
+) {
+  try {
+    const asset = await getAsset(
+      assetName,
+      assetDomainName,
+      accountName,
+      accountDomainName
+    );
+    return asset.value.as("Quantity").valueOf();
+  } catch {
+    return 0;
+  }
 }
 
 async function mintAsset(
@@ -285,25 +421,56 @@ async function main() {
   const domainName = "my_test_domain";
   const assetName = "gold";
 
-  // Register Domain
+  console.log("\n### REGISTER DOMAIN");
   await registerDomain(domainName);
+  await new Promise((resolve) => setTimeout(resolve, 2000)); // wait 2s
   await ensureDomainExistence(domainName);
+  await getDomain(domainName);
 
-  // Create Account
+  console.log("\n### CREATE ACCOUNT");
   const newAccountName = "SomeNewAccount";
   await createAccount(newAccountName, domainName);
+  await new Promise((resolve) => setTimeout(resolve, 2000)); // wait 2s
+  await getAccount(newAccountName, domainName);
 
-  // Create asset
+  console.log("\n### CREATE ASSET");
   await createAsset(assetName, domainName);
+  await new Promise((resolve) => setTimeout(resolve, 2000)); // wait 2s
+  // WARNING: Asset must be minted before it can be searched by ID!
 
-  // Mint asset
+  console.log("\n### MINT ASSET");
+  // Get initial balance
+  const initialQuant = await getAssetQuantity(
+    assetName,
+    domainName,
+    config.ACCOUNT_ID.name,
+    config.ACCOUNT_ID.domain_id.name
+  );
+  console.log("initialQuant:", initialQuant);
+
+  // Mint
+  const amount = 55;
   await mintAsset(
     config.ACCOUNT_ID.name,
     config.ACCOUNT_ID.domain_id.name,
     assetName,
     domainName,
-    55
+    amount
   );
+  await new Promise((resolve) => setTimeout(resolve, 2000)); // wait 2s
+
+  // Get final balance
+  const finalQuant = await getAssetQuantity(
+    assetName,
+    domainName,
+    config.ACCOUNT_ID.name,
+    config.ACCOUNT_ID.domain_id.name
+  );
+  console.log("finalQuant:", finalQuant);
+
+  if (finalQuant != initialQuant + amount) {
+    throw new Error("Invalid balance after mint operation!");
+  }
 }
 
 main();

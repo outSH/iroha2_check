@@ -10,7 +10,9 @@
   "scripts": {
     "build": "tsc",
     "script": "tsx index.ts",
-    "monitor": "tsx monitor.ts"
+    "monitor": "tsx monitor.ts",
+    "block-stream": "tsx block-stream.ts",
+    "generate-key": "tsx generate-key.ts"
   },
   "dependencies": {
     "@iroha2/client": "^1.4.0",
