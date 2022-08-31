@@ -4,6 +4,18 @@ import { KeyPair } from "@iroha2/crypto-core";
 import { setCrypto, Client, SetupBlocksStreamReturn } from "@iroha2/client";
 import { AccountId, DomainId } from "@iroha2/data-model";
 
+/**
+ * ISSUE 2a - build time error
+ * block-stream.ts:7:25 - error TS2307: Cannot find module '@iroha2/client/web-socket/node' or its corresponding type declarations.
+ */
+//import { adapter } from '@iroha2/client/web-socket/node'
+
+/**
+ * ISSUE 2b - runtime error when importing path directly
+ * Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './dist/web-socket/node' is not defined by "exports" in /home/vagrant/iroha2/js-client/node_modules/@iroha2/client/package.json
+ */
+import { adapter } from '@iroha2/client/dist/web-socket/node'
+
 setCrypto(crypto);
 
 function generateKeyPair(params: {
@@ -54,6 +66,7 @@ const client = new Client({
   },
   accountId: accountId,
   keyPair: kp,
+  ws: adapter,
 });
 
 let blockMonitor: SetupBlocksStreamReturn | undefined;

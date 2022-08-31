@@ -38,7 +38,9 @@ import {
   FindAssetById,
   EvaluatesToAssetId,
 } from "@iroha2/data-model";
-import { exit } from "process";
+
+import { fetch as uniFetch } from 'undici'
+import fetch from 'node-fetch'
 
 setCrypto(crypto);
 
@@ -85,6 +87,8 @@ const client = new Client({
   },
   accountId: config.ACCOUNT_ID,
   keyPair: kp,
+  // ISSUE 1: types are incompatible, both for node-fetch and undici
+  fetch: uniFetch as any,
 });
 
 // verbose log in docker compose

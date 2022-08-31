@@ -31,7 +31,7 @@ setCrypto(crypto);
 
 const SEED_BYTES = [11, 22, 33, 44, 55, 66, 77, 88];
 const keyAlgo = crypto.AlgorithmEd25519();
-const config = new (crypto as any).KeyGenConfiguration()
+const config = crypto.createKeyGenConfiguration()
   .useSeed(Uint8Array.from(SEED_BYTES))
   .withAlgorithm(keyAlgo);
 const keyPair = crypto.generateKeyPairWithConfiguration(config);

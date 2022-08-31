@@ -8,20 +8,17 @@
     "node": ">=14.0.0"
   },
   "scripts": {
-    "build": "tsc",
-    "script": "tsx index.ts",
-    "monitor": "tsx monitor.ts",
-    "block-stream": "tsx block-stream.ts",
-    "generate-key": "tsx generate-key.ts"
+    "build": "tsc"
   },
   "dependencies": {
-    "@iroha2/client": "^1.4.0",
-    "@iroha2/crypto-core": "^0.1.1",
-    "@iroha2/crypto-target-node": "^0.2.0",
-    "@iroha2/data-model": "^1.4.0",
+    "@iroha2/client": "2.0.2",
+    "@iroha2/crypto-core": "0.1.1",
+    "@iroha2/crypto-target-node": "0.4.0",
+    "@iroha2/data-model": "2.0.2",
     "hada": "^0.0.8",
-    "tsx": "^3.8.0",
-    "typescript": "^4.7.4"
+    "node-fetch": "^3.2.10",
+    "typescript": "4.3.5",
+    "undici": "^5.10.0"
   },
   "devDependencies": {
     "@types/node": "^18.6.1"
