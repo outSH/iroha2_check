@@ -40,7 +40,7 @@ import {
 } from "@iroha2/data-model";
 
 import { fetch as uniFetch } from 'undici'
-import fetch from 'node-fetch'
+//import fetch from 'node-fetch'
 
 setCrypto(crypto);
 

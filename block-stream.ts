@@ -14,7 +14,6 @@ import { AccountId, DomainId } from "@iroha2/data-model";
  * ISSUE 2b - runtime error when importing path directly
  * Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './dist/web-socket/node' is not defined by "exports" in /home/vagrant/iroha2/js-client/node_modules/@iroha2/client/package.json
  */
-import { adapter } from '@iroha2/client/dist/web-socket/node'
 
 setCrypto(crypto);
 
@@ -66,7 +65,7 @@ const client = new Client({
   },
   accountId: accountId,
   keyPair: kp,
-  ws: adapter,
+  //ws: adapter,
 });
 
 let blockMonitor: SetupBlocksStreamReturn | undefined;
