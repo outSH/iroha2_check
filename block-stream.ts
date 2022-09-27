@@ -1,19 +1,11 @@
 import { hexToBytes } from "hada";
 import { crypto } from "@iroha2/crypto-target-node";
 import { KeyPair } from "@iroha2/crypto-core";
-import { setCrypto, Client, SetupBlocksStreamReturn } from "@iroha2/client";
+import { Client, Signer, Torii, setCrypto, SetupBlocksStreamReturn } from '@iroha2/client'
 import { AccountId, DomainId } from "@iroha2/data-model";
 
-/**
- * ISSUE 2a - build time error
- * block-stream.ts:7:25 - error TS2307: Cannot find module '@iroha2/client/web-socket/node' or its corresponding type declarations.
- */
-//import { adapter } from '@iroha2/client/web-socket/node'
-
-/**
- * ISSUE 2b - runtime error when importing path directly
- * Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './dist/web-socket/node' is not defined by "exports" in /home/vagrant/iroha2/js-client/node_modules/@iroha2/client/package.json
- */
+import { fetch as nodeFetch } from 'undici'
+import { adapter as WS } from '@iroha2/client/web-socket/node'
 
 setCrypto(crypto);
 
@@ -56,22 +48,38 @@ const accountId = AccountId({
   }),
 });
 
-const client = new Client({
-  torii: {
-    // Both URLs are optional - in case you need only a part of endpoints,
-    // e.g. only Telemetry ones
+// const client = new Client({
+//   torii: {
+//     // Both URLs are optional - in case you need only a part of endpoints,
+//     // e.g. only Telemetry ones
+//     apiURL: "http://127.0.0.1:8080",
+//     telemetryURL: "http://127.0.0.1:8180",
+//   },
+//   accountId: accountId,
+//   keyPair: kp,
+//   //ws: adapter,
+// });
+
+function clientFactory() {
+  const signer = new Signer(accountId, kp);
+
+  const torii = new Torii({
     apiURL: "http://127.0.0.1:8080",
     telemetryURL: "http://127.0.0.1:8180",
-  },
-  accountId: accountId,
-  keyPair: kp,
-  //ws: adapter,
-});
+    ws: WS,
+    fetch: nodeFetch as typeof fetch,
+  })
+
+  const client = new Client({ torii, signer })
+
+  return { signer, torii, client }
+}
+const { torii, client } = clientFactory();
 
 let blockMonitor: SetupBlocksStreamReturn | undefined;
 
 async function monitorBlocks() {
-  blockMonitor = await client.listenForBlocksStream({ height: BigInt(0) });
+  blockMonitor = await torii.listenForBlocksStream({ height: BigInt(0) });
 
   blockMonitor.ee.on("block", (block) => {
     console.log("block:", block);

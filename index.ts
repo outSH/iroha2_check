@@ -3,7 +3,7 @@ import { hexToBytes } from "hada";
 
 import { crypto } from "@iroha2/crypto-target-node";
 import { KeyPair } from "@iroha2/crypto-core";
-import { setCrypto, Client } from "@iroha2/client";
+import { Client, Signer, Torii, setCrypto } from '@iroha2/client'
 import {
   AccountId,
   NewAccount,
@@ -39,8 +39,8 @@ import {
   EvaluatesToAssetId,
 } from "@iroha2/data-model";
 
-import { fetch as uniFetch } from 'undici'
-//import fetch from 'node-fetch'
+import { fetch as nodeFetch } from 'undici'
+import { adapter as WS } from '@iroha2/client/web-socket/node'
 
 setCrypto(crypto);
 
@@ -79,20 +79,25 @@ const kp = generateKeyPair({
   },
 });
 
-// More options available - https://github.com/hyperledger/iroha/issues/2118 and UserConfig
-const client = new Client({
-  torii: {
+function clientFactory() {
+  const signer = new Signer(config.ACCOUNT_ID, kp);
+
+  const torii = new Torii({
     apiURL: config.TORII_API_URL,
     telemetryURL: config.TORII_TELEMETRY_URL,
-  },
-  accountId: config.ACCOUNT_ID,
-  keyPair: kp,
-  // ISSUE 1: types are incompatible, both for node-fetch and undici
-  fetch: uniFetch as any,
-});
+    ws: WS,
+    fetch: nodeFetch as typeof fetch,
+  })
+
+  const client = new Client({ torii, signer })
+
+  return { signer, torii, client }
+}
+
+const { torii, client } = clientFactory();
 
 // verbose log in docker compose
-client.setPeerConfig({ LogLevel: "TRACE" });
+torii.setPeerConfig({ LogLevel: "TRACE" });
 
 ////////// Register domain
 async function registerDomain(domainName: string) {
@@ -117,7 +122,7 @@ async function registerDomain(domainName: string) {
     }),
   });
 
-  await client.submit(
+  await client.submitExecutable(
     Executable(
       "Instructions",
       VecInstruction([Instruction("Register", registerBox)])
@@ -127,7 +132,7 @@ async function registerDomain(domainName: string) {
 
 ////// Query Domain
 async function ensureDomainExistence(domainName: string) {
-  const result = await client.request(QueryBox("FindAllDomains", null));
+  const result = await client.requestWithQueryBox(QueryBox("FindAllDomains", null));
 
   const domain = result
     .as("Ok")
@@ -140,7 +145,7 @@ async function ensureDomainExistence(domainName: string) {
 }
 
 async function getDomain(domainName: string) {
-  const result = await client.request(
+  const result = await client.requestWithQueryBox(
     QueryBox(
       "FindDomainById",
       FindDomainById({
@@ -233,7 +238,7 @@ async function createAccount(accountName: string, domainName: string) {
     }),
   });
 
-  await client.submit(
+  await client.submitExecutable(
     Executable(
       "Instructions",
       VecInstruction([Instruction("Register", registerBox)])
@@ -249,7 +254,7 @@ async function getAccount(name: string, domainName: string) {
     }),
   });
 
-  const result = await client.request(
+  const result = await client.requestWithQueryBox(
     QueryBox(
       "FindAccountById",
       FindAccountById({
@@ -302,7 +307,7 @@ async function createAsset(assetName: string, domainName: string) {
     }),
   });
 
-  await client.submit(
+  await client.submitExecutable(
     Executable(
       "Instructions",
       VecInstruction([Instruction("Register", registerBox)])
@@ -329,7 +334,7 @@ async function getAsset(
     }),
   });
 
-  const result = await client.request(
+  const result = await client.requestWithQueryBox(
     QueryBox(
       "FindAssetById",
       FindAssetById({
@@ -411,15 +416,15 @@ async function mintAsset(
     }),
   });
 
-  await client.submit(
+  await client.submitExecutable(
     Executable("Instructions", VecInstruction([Instruction("Mint", mintBox)]))
   );
 }
 
 async function main() {
-  const status = await client.getStatus();
+  const status = await torii.getStatus();
   console.log("status:", JSON.stringify(status));
-  const health = await client.getHealth();
+  const health = await torii.getHealth();
   console.log("health:", JSON.stringify(health));
 
   const domainName = "my_test_domain";

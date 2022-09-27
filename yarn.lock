@@ -2,13 +2,13 @@
 # yarn lockfile v1
 
 
-"@iroha2/client@2.0.2":
-  version "2.0.2"
-  resolved "https://nexus.iroha.tech/repository/npm-group/@iroha2/client/-/client-2.0.2.tgz"
-  integrity sha512-tItbzR3K4NLpfbHR0brO/nhMbXtLBB4967CqA5ia11aDtgUTJGC+rUI9ajvJNu9C5VfkiV8ey1HZu5FJA9JVmw==
+"@iroha2/client@3.0.0":
+  version "3.0.0"
+  resolved "https://nexus.iroha.tech/repository/npm-group/@iroha2/client/-/client-3.0.0.tgz#6c4fce7eb491d4b71e94e73a7b5993b386923d58"
+  integrity sha512-fh5B+ET/mjSQUI5rovzyD4GL8z/J3NQEjeA8q3/ACS4Wv/Llcd32IjqSeNAUE/irBvVQirx192xQyS/+tSqy6A==
   dependencies:
     "@iroha2/crypto-core" "^0.1.1"
-    "@iroha2/data-model" "2.0.2"
+    "@iroha2/data-model" "3.0.0"
     "@types/ws" "^8.2.2"
     debug "^4.3.4"
     emittery "^0.10.1"
@@ -27,48 +27,48 @@
   dependencies:
     "@iroha2/crypto-core" "^0.1.1"
 
-"@iroha2/data-model@2.0.2":
-  version "2.0.2"
-  resolved "https://nexus.iroha.tech/repository/npm-group/@iroha2/data-model/-/data-model-2.0.2.tgz"
-  integrity sha512-ZXShZ5kDwORUJe7r6px1mIJZlZeQFzNKqj64zi5KHH4k8KrqKNVtNhAA0Rqs6qjYuBGJN/45sspLyiSpiS1CVg==
+"@iroha2/data-model@3.0.0":
+  version "3.0.0"
+  resolved "https://nexus.iroha.tech/repository/npm-group/@iroha2/data-model/-/data-model-3.0.0.tgz#ac5d99da8dc507717c0fb93acfb23a2cc2c4c298"
+  integrity sha512-no3oB0AwN8Ti+Dpm2zBxorRhRXKSBolGCSB20p/GNTg94sdJCacAzihisICyHNkEtDFsZnDOIvQzZ2sMaEHCSQ==
   dependencies:
-    "@iroha2/i64-fixnum" "^0.4.1"
-    "@scale-codec/definition-runtime" "^2.2.0"
+    "@iroha2/i64-fixnum" "^0.4.2"
+    "@scale-codec/definition-runtime" "^2.2.2"
 
-"@iroha2/i64-fixnum@^0.4.1":
-  version "0.4.1"
-  resolved "https://nexus.iroha.tech/repository/npm-group/@iroha2/i64-fixnum/-/i64-fixnum-0.4.1.tgz"
-  integrity sha512-lKc5bCdOhkJZqE2716b0bh0lvGo6CBXovYNMvnnNpT5fe36ivjtpk1PGU7sufL1r4fcOaSltOXLOIcQ4Jxvp+Q==
+"@iroha2/i64-fixnum@^0.4.2":
+  version "0.4.2"
+  resolved "https://nexus.iroha.tech/repository/npm-group/@iroha2/i64-fixnum/-/i64-fixnum-0.4.2.tgz#db7f9f35ce786b9eb0184b853a708c3b5cdd5e68"
+  integrity sha512-T+SRb9qzHtHeyybyTWqhPlrc6DARkiZO3eB580pIHlJsRUgcb8hrZtG6Rs6OY6KCk1prIIPOPCqPNqB6Y1kLww==
   dependencies:
-    "@scale-codec/util" "^1.1.0"
+    "@scale-codec/util" "^1.1.1"
 
-"@scale-codec/core@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.npmjs.org/@scale-codec/core/-/core-1.1.0.tgz"
-  integrity sha512-kgwpubfuPqGYwMgVKOfZC2BQJF1s5Lg8+2D+ZsRHC45mJ+2sHxz1DOlmnm/y5QET6vd3uvFfttpPVHjmSugz7w==
+"@scale-codec/core@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@scale-codec/core/-/core-1.1.1.tgz#7ac2914ab8faccb786ac538e59517f593be8eac3"
+  integrity sha512-feiLqQYopj3VXOCFa7xvRexFB8Ik7NJd8L9wGoPzeux+83cnwMjBPQu2TdcKDcchOMtXZ6RyFfF3MNuun75Shg==
   dependencies:
-    "@scale-codec/enum" "^1.1.0"
-    "@scale-codec/util" "^1.1.0"
+    "@scale-codec/enum" "^1.1.1"
+    "@scale-codec/util" "^1.1.1"
 
-"@scale-codec/definition-runtime@^2.2.0":
-  version "2.2.0"
-  resolved "https://registry.npmjs.org/@scale-codec/definition-runtime/-/definition-runtime-2.2.0.tgz"
-  integrity sha512-zKTbsskTdQSAxKLKixa4XKZuppmF11vbp6vZo9v9fpRaOIk0leatB4JzcsbSInSccOgszcfqM6a09CCC03C5/Q==
+"@scale-codec/definition-runtime@^2.2.2":
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/@scale-codec/definition-runtime/-/definition-runtime-2.2.2.tgz#502c8a752da4f31ce25091b8cc0c61a5b58b1ac9"
+  integrity sha512-dZ/0T5LynQRqGMU+XMmM68Hom+mvvI3xMxz09ZBgJEmTQrXkdnvpu5l8mFVWrzBNqjNCi+d6qZ2UMQFAk1NfVg==
   dependencies:
-    "@scale-codec/core" "^1.1.0"
-    "@scale-codec/util" "^1.1.0"
-    fmt-subs "^1.0.2"
+    "@scale-codec/core" "^1.1.1"
+    "@scale-codec/util" "^1.1.1"
+    fmt-subs "^1.1.1"
     type-fest "^2.13.0"
 
-"@scale-codec/enum@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.npmjs.org/@scale-codec/enum/-/enum-1.1.0.tgz"
-  integrity sha512-mWP8w+ZIPVKrNLJtbB5PtTZyiB2kCBti82M4Cs4QldBPSb8EtxMa0D77EbQS3PwSET0n/h9q/ndPCzFarktjvw==
+"@scale-codec/enum@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@scale-codec/enum/-/enum-1.1.1.tgz#b50578d5c3aa8c62056e6f37682b8f5c37db94b1"
+  integrity sha512-GTB5LPcqjZOoWSPn90q97yMUZP6PD1Y3Lk+WnvvqkW1nOgz9vXEqTchm+eYtV23tTeh594Dg5plElA/mVHEUfQ==
 
-"@scale-codec/util@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.npmjs.org/@scale-codec/util/-/util-1.1.0.tgz"
-  integrity sha512-nID8PukC5sdYAIRvOYwoFHqhFFU27/z+DZGcnrvASY4bsJ+xzTBkSruZQFzQmpj0YoPUF7mpFS7ULvxVD5jOzg==
+"@scale-codec/util@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@scale-codec/util/-/util-1.1.1.tgz#eb76902e043a2c2b30e78ee7c34a468fe1c26579"
+  integrity sha512-MXKLSZHjoMOyJvHZo+AnOo6URY2cK77KS9gnEMRJRVFE9IW2Gv3lj+H+BBN5hY57dbboeNGZGfUEcQqFUKAxTw==
 
 "@types/node@*", "@types/node@^18.6.1":
   version "18.7.14"
@@ -112,9 +112,9 @@ fetch-blob@^3.1.2, fetch-blob@^3.1.4:
     node-domexception "^1.0.0"
     web-streams-polyfill "^3.0.3"
 
-fmt-subs@^1.0.2:
+fmt-subs@^1.1.1:
   version "1.1.1"
-  resolved "https://registry.npmjs.org/fmt-subs/-/fmt-subs-1.1.1.tgz"
+  resolved "https://registry.yarnpkg.com/fmt-subs/-/fmt-subs-1.1.1.tgz#1c31eeaeef7c45c4c7ce0ad5a7e8aa0b090d3a60"
   integrity sha512-11qUMl76/5d/gYAtvoBZacQ94DPRKtip989wKVbSb0JD1LWzNg16u47+hLVxmzDqPH74ljlxIyQlbPCAP4XEGQ==
 
 formdata-polyfill@^4.0.10:

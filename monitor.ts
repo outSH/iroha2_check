@@ -4,6 +4,8 @@ import { KeyPair } from "@iroha2/crypto-core";
 import {
   setCrypto,
   Client,
+  Signer,
+  Torii,
   SetupEventsReturn,
 } from "@iroha2/client";
 import {
@@ -29,6 +31,9 @@ import {
   AccountEvent,
   AssetEvent,
 } from "@iroha2/data-model";
+
+import { fetch as nodeFetch } from 'undici'
+import { adapter as WS } from '@iroha2/client/web-socket/node'
 
 setCrypto(crypto);
 
@@ -71,23 +76,40 @@ const accountId = AccountId({
   }),
 });
 
-const client = new Client({
-  torii: {
-    // Both URLs are optional - in case you need only a part of endpoints,
-    // e.g. only Telemetry ones
+// const client = new Client({
+//   torii: {
+//     // Both URLs are optional - in case you need only a part of endpoints,
+//     // e.g. only Telemetry ones
+//     apiURL: "http://127.0.0.1:8080",
+//     telemetryURL: "http://127.0.0.1:8180",
+//   },
+//   accountId: accountId,
+//   keyPair: kp,
+// });
+
+function clientFactory() {
+  const signer = new Signer(accountId, kp);
+
+  const torii = new Torii({
     apiURL: "http://127.0.0.1:8080",
     telemetryURL: "http://127.0.0.1:8180",
-  },
-  accountId: accountId,
-  keyPair: kp,
-});
+    ws: WS,
+    fetch: nodeFetch as typeof fetch,
+  })
+
+  const client = new Client({ torii, signer })
+
+  return { signer, torii, client }
+}
+
+const { torii, client } = clientFactory();
 
 let monitor: SetupEventsReturn | undefined;
 
 async function startMonitoringCommitedTx() {
   console.log("startMonitoringCommitedTx()");
 
-  monitor = await client.listenForEvents({
+  monitor = await torii.listenForEvents({
     filter: FilterBox(
       "Pipeline",
       PipelineEventFilter({
@@ -120,7 +142,7 @@ async function startMonitoringCommitedTx() {
 async function startMonitoringAnyPipeline() {
   console.log("startMonitoringAnyPipeline()");
 
-  monitor = await client.listenForEvents({
+  monitor = await torii.listenForEvents({
     filter: FilterBox(
       "Pipeline",
       PipelineEventFilter({
@@ -153,7 +175,7 @@ async function startMonitoringAnyPipeline() {
 async function startMonitoringByDomain(domainName: string) {
   console.log("startMonitoringByDomain()");
 
-  monitor = await client.listenForEvents({
+  monitor = await torii.listenForEvents({
     filter: FilterBox(
       "Data",
       FilterOptEntityFilter(

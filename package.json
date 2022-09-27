@@ -11,10 +11,10 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@iroha2/client": "2.0.2",
+    "@iroha2/client": "3.0.0",
     "@iroha2/crypto-core": "0.1.1",
     "@iroha2/crypto-target-node": "0.4.0",
-    "@iroha2/data-model": "2.0.2",
+    "@iroha2/data-model": "3.0.0",
     "hada": "^0.0.8",
     "node-fetch": "^3.2.10",
     "typescript": "4.7.2",
