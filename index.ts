@@ -40,7 +40,7 @@ import {
 } from "@iroha2/data-model";
 
 import { fetch as nodeFetch } from 'undici'
-import { adapter as WS } from '@iroha2/client/web-socket/node'
+const { adapter: WS } = require("@iroha2/client/web-socket/node");
 
 setCrypto(crypto);
 
@@ -86,7 +86,7 @@ function clientFactory() {
     apiURL: config.TORII_API_URL,
     telemetryURL: config.TORII_TELEMETRY_URL,
     ws: WS,
-    fetch: nodeFetch as typeof fetch,
+    fetch: nodeFetch as any,
   })
 
   const client = new Client({ torii, signer })

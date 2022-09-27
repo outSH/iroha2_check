@@ -5,7 +5,7 @@ import { Client, Signer, Torii, setCrypto, SetupBlocksStreamReturn } from '@iroh
 import { AccountId, DomainId } from "@iroha2/data-model";
 
 import { fetch as nodeFetch } from 'undici'
-import { adapter as WS } from '@iroha2/client/web-socket/node'
+const { adapter: WS } = require("@iroha2/client/web-socket/node");
 
 setCrypto(crypto);
 
@@ -67,7 +67,7 @@ function clientFactory() {
     apiURL: "http://127.0.0.1:8080",
     telemetryURL: "http://127.0.0.1:8180",
     ws: WS,
-    fetch: nodeFetch as typeof fetch,
+    fetch: nodeFetch as any,
   })
 
   const client = new Client({ torii, signer })

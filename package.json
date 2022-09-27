@@ -17,7 +17,7 @@
     "@iroha2/data-model": "3.0.0",
     "hada": "^0.0.8",
     "node-fetch": "^3.2.10",
-    "typescript": "4.7.2",
+    "typescript": "4.3.5",
     "undici": "^5.10.0"
   },
   "devDependencies": {
