@@ -1,9 +1,9 @@
 import fs from "fs";
-import { hexToBytes } from "hada";
+import { bytesToHex, hexToBytes } from "hada";
 
 import { crypto } from "@iroha2/crypto-target-node";
 import { KeyPair } from "@iroha2/crypto-core";
-import { Client, Signer, Torii, setCrypto, makeTransactionPayload, makeSignedTransaction } from '@iroha2/client'
+import { Client, Signer, Torii, setCrypto, makeTransactionPayload, makeSignedTransaction, computeTransactionHash } from '@iroha2/client'
 import {
   AccountId,
   NewAccount,
@@ -39,9 +39,18 @@ import {
   EvaluatesToAssetId,
   TransactionPayload,
   VersionedTransaction,
+  FilterBox,
+  PipelineEventFilter,
+  OptionHash,
+  OptionPipelineEntityKind,
+  PipelineEntityKind,
+  OptionPipelineStatusKind,
+  PipelineStatusKind,
+  RejectionReason,
 } from "@iroha2/data-model";
 
 import { fetch as nodeFetch } from 'undici'
+import assert from "assert";
 const { adapter: WS } = require("@iroha2/client/web-socket/node");
 
 setCrypto(crypto);
@@ -101,6 +110,96 @@ const { torii, client, signer } = clientFactory();
 // verbose log in docker compose
 torii.setPeerConfig({ LogLevel: "TRACE" });
 
+function getRejectionDescription(reason: RejectionReason): string {
+  return reason.as("Transaction").match({
+    NotPermitted: (error) => {
+      return `NotPermitted: ${error.reason}`;
+    },
+    UnsatisfiedSignatureCondition: (error) => {
+      return `UnsatisfiedSignatureCondition: ${error.reason}`;
+    },
+    LimitCheck: (error) => {
+      return `LimitCheck: ${error}`;
+    },
+    InstructionExecution: (error) => {
+      return `InstructionExecution: ${error.reason}`;
+    },
+    WasmExecution: (error) => {
+      return `WasmExecution: ${error.reason}`;
+    },
+    UnexpectedGenesisAccountSignature: () => {
+      return `UnexpectedGenesisAccountSignature`;
+    },
+  });
+}
+
+async function waitForTransactionStatus(txHash: Uint8Array) {
+  // asserts
+  const txHashHex = bytesToHex([...txHash]);
+  console.log("waitForTransactionStatus() - hash:", txHashHex);
+
+  const monitor = await torii.listenForEvents({
+    filter: FilterBox(
+      "Pipeline",
+      PipelineEventFilter({
+        entity_kind: OptionPipelineEntityKind(
+          "Some",
+          PipelineEntityKind("Transaction")
+        ),
+        status_kind: OptionPipelineStatusKind(
+          "None"
+        ),
+        hash: OptionHash("Some", txHash),
+      })
+    ),
+  });
+  console.log("waitForTransactionStatus() - monitoring started.");
+
+  // Handle events
+  monitor.ee.on("open", (openEvent) => {
+    console.log("waitForTransactionStatus() - connection open:", JSON.stringify(openEvent)); // safeStringify ?
+  });
+
+  monitor.ee.on("close", (closeEvent) => {
+    console.log("waitForTransactionStatus() - connection close:", JSON.stringify(closeEvent)); // safeStringify ?
+  });
+
+  const txStatusPromise = new Promise<string>((resolve, reject) => {
+    monitor.ee.on("error", (error) => {
+      console.log("waitForTransactionStatus() - Received error", error);
+      reject(error);
+    });
+
+    monitor.ee.on("event", (event) => {
+      const { hash, status } = event.as("Pipeline");
+      const hashHex = bytesToHex([...hash]);
+
+      status.match({
+        Validating: () => {
+          const statusLine = `Transaction '${hashHex}' [Validating]`;
+          console.log(`waitForTransactionStatus() - ${statusLine}`);
+        },
+        Committed: () => {
+          const statusLine = `Transaction '${hashHex}' [Commited]`;
+          console.log(`waitForTransactionStatus() - ${statusLine}`);
+          resolve(statusLine);
+        },
+        Rejected: (reason) => {
+          const statusLine = `Transaction '${hashHex}' [Rejected], reason: ${getRejectionDescription(reason)}`;
+          console.log(`waitForTransactionStatus() - ${statusLine}`);
+          reject(statusLine);
+        }
+      });
+    });
+  });
+
+  return txStatusPromise.finally(async () => {
+    console.log(`Transaction ${txHashHex} status received, stop the monitoring...`);
+    monitor.ee.clearListeners();
+    await monitor.stop();
+  });
+}
+
 ////////// Register domain
 async function registerDomain(domainName: string) {
   const registerBox = RegisterBox({
@@ -147,6 +246,10 @@ async function registerDomain(domainName: string) {
   const payloadDecoded = TransactionPayload.fromBuffer(payloadBuffer);
   console.log("payloadDecoded", payloadDecoded);
 
+  // GET HASH
+  const hash = computeTransactionHash(payloadDecoded);
+  const statusPromise = waitForTransactionStatus(hash);
+
   // SIGNED TX
   const signedTx = makeSignedTransaction(payloadDecoded, signer);
   console.log("signedTx", signedTx);
@@ -161,6 +264,14 @@ async function registerDomain(domainName: string) {
   await torii.submit(signedTxDecoded);
 
   console.log("tx sent");
+
+  try {
+    const status = await statusPromise;
+    console.log("status:", status);
+  } catch (error) {
+    console.log("ERROR:", error);
+  }
+
 }
 
 ////// Query Domain
@@ -187,7 +298,7 @@ async function main() {
 
   console.log("\n### REGISTER DOMAIN");
   await registerDomain(domainName);
-  await new Promise((resolve) => setTimeout(resolve, 2000)); // wait 2s
+  // await new Promise((resolve) => setTimeout(resolve, 2000)); // wait 2s
   await ensureDomainExistence(domainName);
 }
 
