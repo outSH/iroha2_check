@@ -3,7 +3,7 @@ import { bytesToHex, hexToBytes } from "hada";
 
 import { crypto } from "@iroha2/crypto-target-node";
 import { KeyPair } from "@iroha2/crypto-core";
-import { Client, Signer, Torii, setCrypto, makeTransactionPayload, makeSignedTransaction, computeTransactionHash } from '@iroha2/client'
+import { Client, Signer, Torii, setCrypto, makeTransactionPayload, makeSignedTransaction, computeTransactionHash, makeQueryPayload, makeSignedQuery } from '@iroha2/client'
 import {
   AccountId,
   NewAccount,
@@ -276,7 +276,16 @@ async function registerDomain(domainName: string) {
 
 ////// Query Domain
 async function ensureDomainExistence(domainName: string) {
-  const result = await client.requestWithQueryBox(QueryBox("FindAllDomains", null));
+  const queryBox = QueryBox("FindAllDomains", null);
+
+  const queryPayload = makeQueryPayload({
+    accountId: config.ACCOUNT_ID,
+    query: queryBox,
+  })
+
+  const signedQuery = makeSignedQuery(queryPayload, signer);
+
+  const result = await torii.request(signedQuery);
 
   const domain = result
     .as("Ok")
